@@ -20,6 +20,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Estimated time it takes to complete a transition
+# from one state to another
 TRANSITION_COMPLETE_DURATION = 30
 PARALLEL_UPDATES = 1
 COVER_NEXT_POS_SCHEMA = vol.Schema({vol.Optional(ATTR_ENTITY_ID): cv.entity_ids})
@@ -40,7 +42,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     hub = tZoneHub(
         hub_ip=hub_ip, hub_name=hub_name, websession=async_get_clientsession(hass)
     )
-    await hub.getHubInfo()
+    await hub.getHubInfo()  # Check all is good
     _LOGGER.debug("Hub object created, FW: %s", hub.fwVer)
     entities = []
     for blind_group in blind_groups:
@@ -73,4 +75,94 @@ class LeviosaBlindGroup(CoverEntity):
     """Represents a Leviosa shade group entity."""
 
     def __init__(self, hass, blind_group_id, blind_group_obj: tShadeGroup):
-        """Initialize
+        """Initialize the shade group."""
+        self._blind_group_id = blind_group_id
+        self._blind_group_obj = blind_group_obj
+        self._hass = hass
+        _LOGGER.debug(
+            "Creating cover.%s, UID: %s",
+            self._blind_group_obj.name,
+            self._blind_group_id,
+        )
+
+    @property
+    def name(self):
+        """Name of the device."""
+        return self._blind_group_obj.name
+
+    @property
+    def unique_id(self):
+        """Return a unique ID for this device."""
+        return self._blind_group_id
+
+    @property
+    def assumed_state(self):
+        """Indicate that we do not go to the device to know its state."""
+        return False
+
+    @property
+    def current_cover_position(self):
+        """Indicate that we do not go to the device to know its state."""
+        return self._blind_group_obj.position
+
+    @property
+    def should_poll(self):
+        """Indicate that the device does not respond to polling."""
+        return True
+
+    @property
+    def supported_features(self):
+        """Bitmap indicating which features this device supports."""
+        return CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+
+    @property
+    def device_class(self):
+        """Indicate we're managing a Roller blind motor group."""
+        return CoverDeviceClass.SHADE
+
+    @property
+    def device_info(self):
+        """Return the device_info of the device."""
+        device_info = {
+            "identifiers": {(DOMAIN, self._blind_group_obj.Hub.hub_ip)},
+            "name": self._blind_group_obj.Hub.name,
+            "manufacturer": MANUFACTURER,
+            "model": MODEL,
+            "via_device": (DOMAIN, self._blind_group_obj.Hub.hub_ip),
+        }
+        return device_info
+
+    @property
+    def is_opening(self):
+        """Is the blind group opening?."""
+        return False
+
+    @property
+    def is_closing(self):
+        """Is the blind closing?."""
+        return False
+
+    @property
+    def is_closed(self):
+        """Is the blind group currently closed?."""
+        return self._blind_group_obj.position == 0
+
+    async def async_close_cover(self, **kwargs):
+        """Close the cover."""
+        await self._blind_group_obj.close()
+
+    async def async_open_cover(self, **kwargs):
+        """Open the cover."""
+        await self._blind_group_obj.open()
+
+    async def async_stop_cover(self, **kwargs):
+        """Stop the cover."""
+        await self._blind_group_obj.stop()
+
+    async def next_down_pos(self):
+        """Move to the next position down."""
+        await self._blind_group_obj.down()
+
+    async def next_up_pos(self):
+        """Move to the next position down."""
+        await self._blind_group_obj.up()
