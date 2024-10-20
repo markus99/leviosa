@@ -3,6 +3,7 @@ import logging
 from .aioleviosa import LeviosaShadeGroup as tShadeGroup, LeviosaZoneHub as tZoneHub
 import voluptuous as vol
 from homeassistant.components.cover import (
+    CoverEntity,
     CoverDeviceClass,
     CoverEntityFeature,
 )
