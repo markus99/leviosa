@@ -16,7 +16,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Leviosa shades Zone from a config entry."""
     for component in PLATFORMS:
         await hass.config_entries.async_forward_entry_setups(entry, ["cover"])
-
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
